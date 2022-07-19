@@ -70,10 +70,11 @@ contract SubscribeMovie {
     mapping(address => mapping(address => uint256)) public subscribed;
     mapping(address => MovieStream[]) public myUploadedMovies; // showing content created corresponding to one's address
     mapping(address => uint256) public tokensEarned; // the amount of money earned by the creators via subscriptions.
+    mapping(address => address[10]) public mySubscriptions; // users address => content creators address to which I have subscribed to
 
     event ContentAdded(address indexed owner, uint256 movieId);
-    event SubscribedShow();
-    event SubscriptionEnded();
+    event SubscribedShow(address indexed user, address subscribedTo, uint256 duration);
+    event SubscriptionEnded(address indexed user, address subscribedTo);
     event FundsWithdrawned(address indexed by, uint256 amount);
 
     function addContent(
@@ -97,7 +98,11 @@ contract SubscribeMovie {
         movieId++;
     }
 
-    function getUserMovies(address _user)
+    function getContentCreators() public view returns (address[] memory) {
+        return signedUp;
+    }
+
+    function getSusbcribedMovies(address _user)
         public
         view
         returns (MovieStream[] memory)
@@ -151,5 +156,9 @@ contract SubscribeMovie {
             tokensEarned[msg.sender]
         );
         emit FundsWithdrawned(msg.sender, tokensEarned[msg.sender]);
+    }
+
+    function binarySearch(address[] memory _user) public pure returns (uint256) {
+        return 5;
     }
 }
