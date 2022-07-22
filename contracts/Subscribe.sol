@@ -62,6 +62,7 @@ contract SubscribeMovie {
     }
 
     address[] signedUp;
+    mapping (address => bool) public checkedSignedup;
 
     // mapping to track if subscribed or not
     // content_creator_address => user address => subscription endtime, ie block.timestamp + subscription duration
@@ -83,7 +84,10 @@ contract SubscribeMovie {
         string memory _movieUrl,
         bool _requiresSubscription
     ) public {
-        signedUp.push(msg.sender);
+        if (checkedSignedup[msg.sender] == false) {
+            signedUp.push(msg.sender);
+            checkedSignedup[msg.sender] = true;
+        }
         myUploadedMovies[msg.sender].push(
             MovieStream(
                 movieId,
@@ -102,7 +106,7 @@ contract SubscribeMovie {
         return signedUp;
     }
 
-    function getSusbcribedMovies(address _user)
+    function getMyUploadedMovies(address _user)
         public
         view
         returns (MovieStream[] memory)
@@ -110,12 +114,12 @@ contract SubscribeMovie {
         return myUploadedMovies[_user];
     }
 
-    function subscribeMovie(address _user) public {
+    function subscribeMovie(address _user, uint256 _duration) public {
         // pay the fee to the owner or the contract. If contract, then After sometime we can send it to the owner. Just in case the user
         // decides to cancle subscription and needs a refund
         require(getSubscriptionStatus(_user), "You are already subscribed");
         IERC20Token(cUSD).transferFrom(msg.sender, address(this), 5); //sending money from subscriber to the contract
-        subscribed[_user][msg.sender] = block.timestamp + 50 seconds;
+        subscribed[_user][msg.sender] = block.timestamp + (_duration * 1 seconds);
     }
 
     function cancleSubscription(address _user) public {
@@ -156,9 +160,5 @@ contract SubscribeMovie {
             tokensEarned[msg.sender]
         );
         emit FundsWithdrawned(msg.sender, tokensEarned[msg.sender]);
-    }
-
-    function binarySearch(address[] memory _user) public pure returns (uint256) {
-        return 5;
     }
 }
