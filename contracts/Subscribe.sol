@@ -114,11 +114,13 @@ contract SubscribeMovie {
         return myUploadedMovies[_user];
     }
 
-    function subscribeMovie(address _user, uint256 _duration) public {
+    function subscribeMovie(address _user, uint256 _duration) public payable {
         // pay the fee to the owner or the contract. If contract, then After sometime we can send it to the owner. Just in case the user
         // decides to cancle subscription and needs a refund
         require(getSubscriptionStatus(_user), "You are already subscribed");
-        IERC20Token(cUSD).transferFrom(msg.sender, address(this), 5); //sending money from subscriber to the contract
+        require(
+            IERC20Token(cUSD).transferFrom(msg.sender, _user, 1), "Transfer failed"
+        );
         subscribed[_user][msg.sender] = block.timestamp + (_duration * 1 seconds);
     }
 
@@ -135,9 +137,9 @@ contract SubscribeMovie {
 
     function getSubscriptionStatus(address _user) public view returns (bool) {
         if (block.timestamp > subscribed[_user][msg.sender]) {
-            return false; // subscription finished
+            return true; // subscription finished
         }
-        return true; // subscription valid
+        return false; // subscription valid
     }
 
     function totalContent() public view returns (uint256) {
