@@ -74,10 +74,10 @@ contract SubscribeMovie {
     mapping(address => address[10]) public mySubscriptions; // users address => content creators address to which I have subscribed to
 
     event ContentAdded(address indexed owner, uint256 movieId);
-    event SubscribedShow(address indexed user, address subscribedTo, uint256 duration);
+    event UserSubscribed(address indexed user, address subscribedTo, uint256 duration, uint256 amount);
     event SubscriptionEnded(address indexed user, address subscribedTo);
-    event FundsWithdrawned(address indexed by, uint256 amount);
 
+    // function to add content and signup
     function addContent(
         string memory _title,
         string memory _description,
@@ -102,10 +102,12 @@ contract SubscribeMovie {
         movieId++;
     }
 
+    // A list of all content creators on platform
     function getContentCreators() public view returns (address[] memory) {
         return signedUp;
     }
 
+    // get users uploaded content
     function getMyUploadedMovies(address _user)
         public
         view
@@ -114,28 +116,18 @@ contract SubscribeMovie {
         return myUploadedMovies[_user];
     }
 
+    // Subscribe to view the content by paying the fee to the creator
     function subscribeMovie(address _user, uint256 _duration, uint256 _amount) public payable {
-        // pay the fee to the owner or the contract. If contract, then After sometime we can send it to the owner. Just in case the user
-        // decides to cancle subscription and needs a refund
-        require(getSubscriptionStatus(_user), "You are already subscribed");
+        require(getSubscriptionStatus(_user), "You have already subscribed");
         require(
             IERC20Token(cUSD).transferFrom(msg.sender, _user, _amount), "Transfer failed"
         );
         tokensEarned[_user] = tokensEarned[_user] + _amount;
         subscribed[_user][msg.sender] = block.timestamp + (_duration * 1 seconds);
+        emit UserSubscribed(msg.sender, _user, _duration, _amount);
     }
 
-    function cancleSubscription(address _user) public {
-        // create a cancle window. Within this window the user can cancle the subscription, but not after this window period.
-        require(
-            subscribed[_user][msg.sender] != 0,
-            "There is no subscription for this"
-        );
-        // refund the money. For this the cUSD will have to be stored in the contract for sometime until the cancle duration is crossed.
-        // Then the amount can be transferred to the owner. We can make the contract act as an escrow
-        subscribed[_user][msg.sender] = 0;
-    }
-
+    // get my subscription status for a particular content creator
     function getSubscriptionStatus(address _user) public view returns (bool) {
         if (block.timestamp > subscribed[_user][msg.sender]) {
             return true; // subscription finished
@@ -143,29 +135,13 @@ contract SubscribeMovie {
         return false; // subscription valid
     }
 
+    // total number of content uploaded
     function totalContent() public view returns (uint256) {
         return movieId;
     }
 
+    // check your total earnings from subscriptions
     function checkEarnings() public view returns (uint256) {
         return tokensEarned[msg.sender];
-    }
-
-    // after sometime the content creator can withdraw their funds from the contract
-    function withdrawFunds() public {
-        require(
-            tokensEarned[msg.sender] > 0,
-            "There is nothing to be withdrawned"
-        );
-                require (
-            IERC20Token(cUSD).transferFrom (
-            address(this),
-            msg.sender,
-            tokensEarned[msg.sender]
-            ),
-            "Transfer failed"
-        );
-        
-        emit FundsWithdrawned(msg.sender, tokensEarned[msg.sender]);
     }
 }
