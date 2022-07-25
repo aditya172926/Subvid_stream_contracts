@@ -119,8 +119,9 @@ contract SubscribeMovie {
         // decides to cancle subscription and needs a refund
         require(getSubscriptionStatus(_user), "You are already subscribed");
         require(
-            IERC20Token(cUSD).transferFrom(msg.sender, address(this), _amount), "Transfer failed"
+            IERC20Token(cUSD).transferFrom(msg.sender, _user, _amount), "Transfer failed"
         );
+        tokensEarned[_user] = tokensEarned[_user] + _amount;
         subscribed[_user][msg.sender] = block.timestamp + (_duration * 1 seconds);
     }
 
@@ -156,11 +157,15 @@ contract SubscribeMovie {
             tokensEarned[msg.sender] > 0,
             "There is nothing to be withdrawned"
         );
-        IERC20Token(cUSD).transferFrom(
+                require (
+            IERC20Token(cUSD).transferFrom (
             address(this),
             msg.sender,
             tokensEarned[msg.sender]
+            ),
+            "Transfer failed"
         );
+        
         emit FundsWithdrawned(msg.sender, tokensEarned[msg.sender]);
     }
 }
