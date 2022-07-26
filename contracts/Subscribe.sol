@@ -3,18 +3,6 @@ pragma solidity ^0.8.4;
 
 import "hardhat/console.sol";
 
-// A celo platform for content creators. You can create your content and post it on the web.
-// Using the link to your content, you can ask for subscriptions from your users to actually see
-// your content after they pass the free limit.
-// You will be paid on the basis of subscription model and once the user subscription ends, unless the
-// user renews the subscription, they cannot view your content.
-
-/*
-We will have to make a array of users, signing up with us.
-There will be another mapping which will map the users address to an array of MovieStream struct. 
-It determines how the movies are uploaded for each user. 
-*/
-
 interface IERC20Token {
     function transfer(address, uint256) external returns (bool);
 
@@ -44,13 +32,6 @@ contract SubscribeMovie {
     uint256 internal movieId = 0;
     address constant cUSD = 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1;
 
-    enum SubscriptionDuration {
-        MONTHLY,
-        QUATERLY,
-        HALF_YEARLY,
-        ANNUALLY
-    }
-
     struct MovieStream {
         uint256 streamId;
         address owner;
@@ -58,7 +39,6 @@ contract SubscribeMovie {
         string description;
         string movieUrl;
         bool requiresSubscription;
-        // SubscriptionDuration duration; // minimum duration 1 hour
     }
 
     address[] signedUp;
@@ -66,8 +46,6 @@ contract SubscribeMovie {
 
     // mapping to track if subscribed or not
     // content_creator_address => user address => subscription endtime, ie block.timestamp + subscription duration
-    // mapping(address => mapping(address => uint256)) public subscribed; this or below one
-    // movieId => user address => subscription endtime, ie block.timestamp + subscription duration
     mapping(address => mapping(address => uint256)) public subscribed;
     mapping(address => MovieStream[]) public myUploadedMovies; // showing content created corresponding to one's address
     mapping(address => uint256) public tokensEarned; // the amount of money earned by the creators via subscriptions.
