@@ -29,7 +29,7 @@ interface IERC20Token {
 }
 
 contract SubscribeMovie {
-    uint256 internal movieId = 0;
+    uint256 private movieId = 0;
     address constant cUSD = 0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1;
 
     struct MovieStream {
@@ -41,27 +41,47 @@ contract SubscribeMovie {
         bool requiresSubscription;
     }
 
-    address[] signedUp;
-    mapping (address => bool) public checkedSignedup;
+    enum Tiers {
+        Unsubscribed,
+        Bronze,
+        Silver,
+        Gold
+    }
+
+    address[] private signedUp;
+    mapping(address => bool) public checkedSignedup;
 
     // mapping to track if subscribed or not
     // content_creator_address => user address => subscription endtime, ie block.timestamp + subscription duration
     mapping(address => mapping(address => uint256)) public subscribed;
-    mapping(address => MovieStream[]) public myUploadedMovies; // showing content created corresponding to one's address
+    mapping(address => MovieStream[]) private myUploadedMovies; // showing content created corresponding to one's address
     mapping(address => uint256) public tokensEarned; // the amount of money earned by the creators via subscriptions.
-    mapping(address => address[10]) public mySubscriptions; // users address => content creators address to which I have subscribed to
-
+    // keeps track of the tier subscribed for a creator of a user
+    mapping(address => mapping(address => uint256)) public subscribedTier;
     event ContentAdded(address indexed owner, uint256 movieId);
-    event UserSubscribed(address indexed user, address subscribedTo, uint256 duration, uint256 amount);
-    event SubscriptionEnded(address indexed user, address subscribedTo);
+    event UserSubscribed(
+        address indexed user,
+        address subscribedTo,
+        uint256 duration,
+        uint256 amount
+    );
+    event SubscriptionUpgraded(
+        address indexed user,
+        address subscribedTo,
+        uint256 previousTier,
+        uint256 newTier
+    );
 
-    // function to add content and signup
+    /// @dev function to add content and signup
     function addContent(
-        string memory _title,
-        string memory _description,
-        string memory _movieUrl,
+        string calldata _title,
+        string calldata _description,
+        string calldata _movieUrl,
         bool _requiresSubscription
-    ) public {
+    ) external {
+        require(bytes(_title).length > 0, "Empty title");
+        require(bytes(_description).length > 0, "Empty description");
+        require(bytes(_movieUrl).length > 0, "Empty movie url");
         if (checkedSignedup[msg.sender] == false) {
             signedUp.push(msg.sender);
             checkedSignedup[msg.sender] = true;
@@ -80,45 +100,101 @@ contract SubscribeMovie {
         movieId++;
     }
 
-    // A list of all content creators on platform
+    /// @dev A list of all content creators on platform
     function getContentCreators() public view returns (address[] memory) {
         return signedUp;
     }
 
-    // get users uploaded content
+    /// @dev get users uploaded content
     function getMyUploadedMovies(address _user)
         public
         view
         returns (MovieStream[] memory)
     {
+        require(
+            _user == msg.sender || getSubscriptionStatus(_user),
+            "You are not subscribed to creator"
+        );
         return myUploadedMovies[_user];
     }
 
-    // Subscribe to view the content by paying the fee to the creator
-    function subscribeMovie(address _user, uint256 _duration, uint256 _amount) public payable {
-        require(getSubscriptionStatus(_user), "You have already subscribed");
+    /// @dev Subscribe to view the content by paying the fee to the creator
+    function subscribeMovie(address _user, uint256 tier) external payable {
+        require(msg.sender != _user, "You can't subscribe to yourself");
+        require(!getSubscriptionStatus(_user), "You have already subscribed");
         require(
-            IERC20Token(cUSD).transferFrom(msg.sender, _user, _amount), "Transfer failed"
+            tier == uint256(Tiers.Bronze) ||
+                tier == uint256(Tiers.Silver) ||
+                tier == uint256(Tiers.Gold),
+            "Tier doesn't exist"
         );
-        tokensEarned[_user] = tokensEarned[_user] + _amount;
-        subscribed[_user][msg.sender] = block.timestamp + (_duration * 1 seconds);
-        emit UserSubscribed(msg.sender, _user, _duration, _amount);
+        uint256 amount = 1 ether * tier;
+        uint256 duration = 10 minutes * tier;
+        require(
+            IERC20Token(cUSD).transferFrom(msg.sender, _user, amount),
+            "Transfer failed"
+        );
+        tokensEarned[_user] = tokensEarned[_user] + amount;
+        subscribed[_user][msg.sender] = block.timestamp + duration;
+        subscribedTier[_user][msg.sender] = tier;
+        emit UserSubscribed(msg.sender, _user, duration, amount);
     }
 
-    // get my subscription status for a particular content creator
+    function upgradeSubscriptionStatus(address _user, uint256 tier) external {
+        require(
+            tier == uint256(Tiers.Silver) || tier == uint256(Tiers.Gold),
+            "Tier doesn't exist"
+        );
+        uint256 currentTier = subscribedTier[_user][msg.sender];
+        require(
+            currentTier > uint256(Tiers.Unsubscribed),
+            "You need to subscribe first"
+        );
+        require(
+            currentTier < uint256(Tiers.Gold),
+            "You already have the maximum tier for this creator"
+        );
+        uint256 amount;
+        uint256 duration;
+        if (currentTier == uint256(Tiers.Bronze)) {
+            amount = 1 ether;
+            duration = 10 minutes;
+        } else {
+            amount = 2 ether;
+            duration = 20 minutes;
+        }
+        tokensEarned[_user] = tokensEarned[_user] + amount;
+        subscribed[_user][msg.sender] =
+            subscribed[_user][msg.sender] +
+            duration;
+        subscribedTier[_user][msg.sender] = tier;
+        require(
+            IERC20Token(cUSD).transferFrom(msg.sender, _user, amount),
+            "Transfer failed"
+        );
+
+        emit SubscriptionUpgraded(
+            msg.sender,
+            _user,
+            currentTier,
+            subscribedTier[_user][msg.sender]
+        );
+    }
+
+    /// @dev get a user's subscription status for a particular content creator
     function getSubscriptionStatus(address _user) public view returns (bool) {
         if (block.timestamp > subscribed[_user][msg.sender]) {
-            return true; // subscription finished
+            return false; // subscription finished
         }
-        return false; // subscription valid
+        return true; // subscription valid
     }
 
-    // total number of content uploaded
+    /// @dev total number of content uploaded
     function totalContent() public view returns (uint256) {
         return movieId;
     }
 
-    // check your total earnings from subscriptions
+    /// @dev check your total earnings from subscriptions
     function checkEarnings() public view returns (uint256) {
         return tokensEarned[msg.sender];
     }
