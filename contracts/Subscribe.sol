@@ -57,7 +57,7 @@ contract SubscribeMovie {
     mapping(address => MovieStream[]) private myUploadedMovies; // showing content created corresponding to one's address
     mapping(address => uint256) public tokensEarned; // the amount of money earned by the creators via subscriptions.
     // keeps track of the tier subscribed for a creator of a user
-    mapping(address => mapping(address => uint256)) public subscribedTier;
+    mapping(address => mapping(address => Tiers)) public subscribedTier;
     event ContentAdded(address indexed owner, uint256 movieId);
     event UserSubscribed(
         address indexed user,
@@ -136,38 +136,41 @@ contract SubscribeMovie {
         );
         tokensEarned[_user] = tokensEarned[_user] + amount;
         subscribed[_user][msg.sender] = block.timestamp + duration;
-        subscribedTier[_user][msg.sender] = tier;
+        subscribedTier[_user][msg.sender] = Tiers(tier);
         emit UserSubscribed(msg.sender, _user, duration, amount);
     }
 
+    /// @dev allows users to upgrade an existing subscription
+    /// @notice amount and duration is calculated by substracting currentTier from tier as each upgrade cost 1 ether for 10 more minutes
     function upgradeSubscriptionStatus(address _user, uint256 tier) external {
         require(
             tier == uint256(Tiers.Silver) || tier == uint256(Tiers.Gold),
             "Tier doesn't exist"
         );
-        uint256 currentTier = subscribedTier[_user][msg.sender];
+
+        if (!getSubscriptionStatus(_user)) {
+            subscribedTier[_user][msg.sender] = Tiers.Unsubscribed;
+        }
+        uint256 currentTier = uint256(subscribedTier[_user][msg.sender]);
         require(
             currentTier > uint256(Tiers.Unsubscribed),
             "You need to subscribe first"
         );
         require(
+            tier > currentTier,
+            "You have to choose a higher tier to upgrade"
+        );
+        require(
             currentTier < uint256(Tiers.Gold),
             "You already have the maximum tier for this creator"
         );
-        uint256 amount;
-        uint256 duration;
-        if (currentTier == uint256(Tiers.Bronze)) {
-            amount = 1 ether;
-            duration = 10 minutes;
-        } else {
-            amount = 2 ether;
-            duration = 20 minutes;
-        }
+        uint256 amount = (tier - currentTier) * 1 ether;
+        uint256 duration = (tier - currentTier) * 10 minutes;
         tokensEarned[_user] = tokensEarned[_user] + amount;
         subscribed[_user][msg.sender] =
             subscribed[_user][msg.sender] +
             duration;
-        subscribedTier[_user][msg.sender] = tier;
+        subscribedTier[_user][msg.sender] = Tiers(tier);
         require(
             IERC20Token(cUSD).transferFrom(msg.sender, _user, amount),
             "Transfer failed"
@@ -177,7 +180,7 @@ contract SubscribeMovie {
             msg.sender,
             _user,
             currentTier,
-            subscribedTier[_user][msg.sender]
+            tier
         );
     }
 
