@@ -1,3 +1,10 @@
+# <p align="center">Hacktoberfest 2022</p>
+👋 Hi Hackers, its a great day if you stumbled on this repository from anywhere 
+
+To start contributing to this repository, checkout the [Contributing guidelines](https://github.com/aditya172926/Subvid_stream_contracts/blob/main/CONTRIBUTING.md)
+
+To know more about this contract, continue reading...
+
 # <p align="center">Subvid Contracts</p>
 A celo platform for content creators. You can create your content and post it on the web. Using the link to your content, you can ask for subscriptions from your users to view your content. You will be paid on the basis of subscription model and once the user subscription ends, unless the user renews the subscription, they cannot view your content.
 
