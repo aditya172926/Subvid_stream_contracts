@@ -5,6 +5,8 @@ Before contributing to this Repository please note we have a [Code of Conduct](h
 Welcome Hackers!!
 To start contributing first discuss the issue or feature you want to work on by either creating a new Issue, via email or any other method with the owner of the Repository.
 
+Please give this repository a ⭐ as well if you liked it.
+
 ## Contributing Process
 - Fork the Repository and Clone it to your machine (Have Git installed in your machine)
 - Using `npm install` download all the dependencies (You should have Node Js)
