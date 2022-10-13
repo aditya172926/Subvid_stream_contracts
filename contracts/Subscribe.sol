@@ -49,15 +49,29 @@ contract SubscribeMovie {
     }
 
     address[] private signedUp;
+
+    // MAPPINGS
+    // --------
     mapping(address => bool) public checkedSignedup;
+
+    // mapping for address => user's name
+    mapping(address => string) public addressToUsers;
 
     // mapping to track if subscribed or not
     // content_creator_address => user address => subscription endtime, ie block.timestamp + subscription duration
     mapping(address => mapping(address => uint256)) public subscribed;
-    mapping(address => MovieStream[]) private myUploadedMovies; // showing content created corresponding to one's address
-    mapping(address => uint256) public tokensEarned; // the amount of money earned by the creators via subscriptions.
+
+    // showing content created corresponding to one's address
+    mapping(address => MovieStream[]) private myUploadedMovies;
+
+    // the amount of money earned by the creators via subscriptions.
+    mapping(address => uint256) public tokensEarned;
+
     // keeps track of the tier subscribed for a creator of a user
     mapping(address => mapping(address => Tiers)) public subscribedTier;
+
+    // EVENTS
+    // ------
     event ContentAdded(address indexed owner, uint256 movieId);
     event UserSubscribed(
         address indexed user,
@@ -71,6 +85,22 @@ contract SubscribeMovie {
         uint256 previousTier,
         uint256 newTier
     );
+    event UserAdded(address indexed user, string name);
+
+    /// @dev function to add user with mapping to the name
+    function addUser(string memory _name) public {
+        addressToUsers[msg.sender] = _name;
+        emit UserAdded(msg.sender, _name);
+    }
+
+    /// @dev modifier to check if user has been added with name in "addressToUsers" mapping
+    modifier isRegisteredProperly() {
+        require(
+            addressToUsers[msg.sender].isValue,
+            "The user should be registered properly with username using addUser function"
+        );
+        _;
+    }
 
     /// @dev function to add content and signup
     function addContent(
@@ -78,7 +108,7 @@ contract SubscribeMovie {
         string calldata _description,
         string calldata _movieUrl,
         bool _requiresSubscription
-    ) external {
+    ) external isRegisteredProperly {
         require(bytes(_title).length > 0, "Empty title");
         require(bytes(_description).length > 0, "Empty description");
         require(bytes(_movieUrl).length > 0, "Empty movie url");
@@ -109,6 +139,7 @@ contract SubscribeMovie {
     function getMyUploadedMovies(address _user)
         public
         view
+        isRegisteredProperly
         returns (MovieStream[] memory)
     {
         require(
@@ -119,7 +150,11 @@ contract SubscribeMovie {
     }
 
     /// @dev Subscribe to view the content by paying the fee to the creator
-    function subscribeMovie(address _user, uint256 tier) external payable {
+    function subscribeMovie(address _user, uint256 tier)
+        external
+        payable
+        isRegisteredProperly
+    {
         require(msg.sender != _user, "You can't subscribe to yourself");
         require(!getSubscriptionStatus(_user), "You have already subscribed");
         require(
@@ -142,7 +177,10 @@ contract SubscribeMovie {
 
     /// @dev allows users to upgrade an existing subscription
     /// @notice amount and duration is calculated by substracting currentTier from tier as each upgrade cost 1 ether for 10 more minutes
-    function upgradeSubscriptionStatus(address _user, uint256 tier) external {
+    function upgradeSubscriptionStatus(address _user, uint256 tier)
+        external
+        isRegisteredProperly
+    {
         require(
             tier == uint256(Tiers.Silver) || tier == uint256(Tiers.Gold),
             "Tier doesn't exist"
@@ -176,16 +214,16 @@ contract SubscribeMovie {
             "Transfer failed"
         );
 
-        emit SubscriptionUpgraded(
-            msg.sender,
-            _user,
-            currentTier,
-            tier
-        );
+        emit SubscriptionUpgraded(msg.sender, _user, currentTier, tier);
     }
 
     /// @dev get a user's subscription status for a particular content creator
-    function getSubscriptionStatus(address _user) public view returns (bool) {
+    function getSubscriptionStatus(address _user)
+        public
+        view
+        isRegisteredProperly
+        returns (bool)
+    {
         if (block.timestamp > subscribed[_user][msg.sender]) {
             return false; // subscription finished
         }
@@ -193,12 +231,17 @@ contract SubscribeMovie {
     }
 
     /// @dev total number of content uploaded
-    function totalContent() public view returns (uint256) {
+    function totalContent() public view isRegisteredProperly returns (uint256) {
         return movieId;
     }
 
     /// @dev check your total earnings from subscriptions
-    function checkEarnings() public view returns (uint256) {
+    function checkEarnings()
+        public
+        view
+        isRegisteredProperly
+        returns (uint256)
+    {
         return tokensEarned[msg.sender];
     }
 }
