@@ -41,6 +41,11 @@ contract SubscribeMovie {
         bool requiresSubscription;
     }
 
+    struct Creators {
+        address creatorAddress;
+        string creatorUsername;
+    }
+
     enum Tiers {
         Unsubscribed,
         Bronze,
@@ -49,7 +54,7 @@ contract SubscribeMovie {
     }
 
     address[] private signedUp;
-
+    Creators[] private creators;
     // MAPPINGS
     // --------
     mapping(address => bool) public checkedSignedup;
@@ -90,6 +95,7 @@ contract SubscribeMovie {
     /// @dev function to add user with mapping to the name
     function addUser(string memory _name) public {
         addressToUsers[msg.sender] = _name;
+        creators.push(msg.sender, _name);
         emit UserAdded(msg.sender, _name);
     }
 
@@ -130,9 +136,9 @@ contract SubscribeMovie {
         movieId++;
     }
 
-    /// @dev A list of all content creators on platform
-    function getContentCreators() public view returns (address[] memory) {
-        return signedUp;
+    /// @dev A list of all content creators on platform and returning the objects
+    function getContentCreators() public view returns (Creators[] memory) {
+        return creators;
     }
 
     /// @dev get users uploaded content
