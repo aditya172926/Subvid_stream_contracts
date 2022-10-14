@@ -39,3 +39,12 @@ To contribute to this project follow these guidelines
     
 #### <p align="center">Disclaimer</p>
 Any content posted on the dapp platform may or may not be the respective users' own content. Sharing of open-source content is allowed. This dapp and users on it, do not make any profit or have any involvement in buying or selling anyone's content.
+
+# Contributors
+<br>
+<h1 align="center">
+ <b>Thanks to these amazing people
+<h1>
+<a href="https://github.com/aditya172926/Subvid_stream_contracts/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=aditya172926/Subvid_stream_contracts&&max=817" />
+</a>
