@@ -41,7 +41,8 @@ contract SubscribeMovie {
         bool requiresSubscription;
     }
 
-    struct Creators {
+    struct Creator {
+        uint256 id;
         address creatorAddress;
         string creatorUsername;
     }
@@ -53,8 +54,9 @@ contract SubscribeMovie {
         Gold
     }
 
+    uint256 creatorCount = 0;
     address[] private signedUp;
-    Creators[] private creators;
+    Creator[] private creators;
     // MAPPINGS
     // --------
     mapping(address => bool) public checkedSignedup;
@@ -95,14 +97,15 @@ contract SubscribeMovie {
     /// @dev function to add user with mapping to the name
     function addUser(string memory _name) public {
         addressToUsers[msg.sender] = _name;
-        creators.push(msg.sender, _name);
+        creators.push(Creator(creatorCount, msg.sender, _name));
+        creatorCount++;
         emit UserAdded(msg.sender, _name);
     }
 
     /// @dev modifier to check if user has been added with name in "addressToUsers" mapping
     modifier isRegisteredProperly() {
         require(
-            addressToUsers[msg.sender].isValue,
+            bytes(addressToUsers[msg.sender]).length > 0,
             "The user should be registered properly with username using addUser function"
         );
         _;
@@ -137,7 +140,7 @@ contract SubscribeMovie {
     }
 
     /// @dev A list of all content creators on platform and returning the objects
-    function getContentCreators() public view returns (Creators[] memory) {
+    function getContentCreators() public view returns (Creator[] memory) {
         return creators;
     }
 
