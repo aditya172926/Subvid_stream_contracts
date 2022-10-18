@@ -86,6 +86,7 @@ contract SubscribeMovie {
             signedUp.push(msg.sender);
             checkedSignedup[msg.sender] = true;
         }
+        subscribedTier[msg.sender][msg.sender] = Tiers.Gold;
         myUploadedMovies[msg.sender].push(
             MovieStream(
                 movieId,
