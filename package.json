@@ -10,7 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "hardhat": "^2.9.9"
+    "dotenv": "^16.0.3",
+    "hardhat": "^2.9.9",
+    "hardhat-deploy": "^0.11.18"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
